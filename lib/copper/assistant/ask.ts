@@ -123,7 +123,8 @@ async function streamAnswer(
 
     if (!reply.trim()) reply = SORRY;
     done(snapshot("done"));
-  } catch {
+  } catch (error) {
+    console.error("[ask-copper]", error instanceof Error ? error.message : error);
     if (!reply.trim()) reply = SORRY;
     done(snapshot("error"));
   }
