@@ -82,3 +82,32 @@ When a module changes how the app fits together, add a section here:
 **Risks and open questions:** cost, privacy, accuracy or safety risks, and how
 you handle them.
 ```
+
+## Module 2: Ask Copper
+
+**Summary:** a floating shopping chat on the landing page that answers price,
+total and stock questions by calling four tools instead of guessing, and shows
+each step (thinking, tool calls, reply) as it streams.
+
+| Piece | Where | What it does |
+|---|---|---|
+| Page / route | `app/page.tsx` | Mounts the panel and passes it `isAiConfigured()`. No new pages or routes |
+| Components | `components/copper/ask-copper.tsx`, `ask-copper-answer.tsx` | The launcher and Sheet panel, two separate chats (tools on and off), and each answer drawn as stations with an always-open tool card |
+| Server Action | `lib/copper/assistant/ask.ts` | `askCopper({ messages, useTools })` returns a live `Progress` right away and fills it from `result.fullStream` |
+| Tools | `lib/copper/assistant/tools.ts` | `get_products`, `get_prices`, `calculate_cost`, `check_availability`, with zod input rules |
+| Data | `lib/copper/data/inventory.json` | Stock per product color, read fresh by `readInventory()` on every call |
+| AI calls | `lib/ai/call.ts` (2, `ask-copper`) | Gemini via `callStream`, with thought summaries; up to 5 steps with tools. Well under a cent per question |
+
+**Data flow:** shopper asks → `askCopper` Server Action → `callStream` → the
+model calls a tool → the tool reads the catalog or stock → the model writes the
+reply → each update streams back to the panel through `Live<Progress>`.
+
+**Decisions and trade-offs:** prices and stock come only from tools, so the
+model never invents them. The panel uses a Server Action and a live value
+rather than an API route, to keep the site one page. With tools off the model
+gets no instructions and no tools, so the comparison shows what it does from
+memory alone.
+
+**Risks and open questions:** with tools off, answers can be made up; the panel
+labels them. Each question costs a model call, logged to `ai_calls` with its
+cost and time.
