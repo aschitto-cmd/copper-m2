@@ -1,7 +1,7 @@
 // One Ask Copper answer, drawn as stations on a rail in the order they
 // happened: the tools on offer, Copper's thinking, each tool call (what Copper
 // sent and what came back), then the reply. Spec section 5.
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import {
   AlertTriangleIcon,
   BrainIcon,
@@ -22,6 +22,11 @@ import type {
   Prices,
   ProductList,
 } from "@/lib/copper/assistant/tools";
+
+// The markdown renderer is large, so load it only once there's a reply to show.
+const MessageResponse = lazy(() =>
+  import("@/components/ai-elements/message").then((m) => ({ default: m.MessageResponse })),
+);
 
 /** Renders the little markdown Gemini uses: **bold** and `code`. */
 function inline(text: string): ReactNode[] {
@@ -426,12 +431,11 @@ export function AskCopperAnswer({
               </p>
             </div>
           )}
-          <p className="text-sm whitespace-pre-wrap">
-            {inline(progress.reply)}
-            {working && (
-              <span aria-hidden className="bg-primary ml-0.5 inline-block h-4 w-1.5 animate-pulse align-middle" />
-            )}
-          </p>
+          <Suspense fallback={<p className="text-sm whitespace-pre-wrap">{progress.reply}</p>}>
+            <MessageResponse className="text-sm" isAnimating={working}>
+              {progress.reply}
+            </MessageResponse>
+          </Suspense>
         </div>
       )}
     </div>
